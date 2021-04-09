@@ -95,52 +95,5 @@ def freeze(layer):
             param.requires_grad = False
 
 
-def make_layers_Cifar10(cfg,batch_norm=False, conv=nn.Conv2d):
-    layers = list()
-    in_channels = 3
-    n = 1
-    for v in cfg:
-        if v == 'M':
-            layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-        else:
-            use_quant = v[-1] != 'N'
-            filters = int(v) if use_quant else int(v[:-1])
-            conv2d = conv(in_channels, filters, kernel_size=5, padding=2)
-            if batch_norm:
-                layers += [conv2d, nn.BatchNorm2d(filters), nn.ReLU(True)]
-            else:
-                layers += [conv2d, nn.ReLU()]
-            n += 1
-            in_channels = filters
-    return nn.Sequential(*layers)
 
-class CNNCifar(nn.Module):
-    def __init__(self):
-
-        super(CNNCifar, self).__init__()
-        self.linear = nn.Linear
-        cfg = {
-            9: ['64', '64', 'M', '128', '128', 'M', '256', '256', 'M'],
-            11: ['64', 'M', '128', 'M', '256', '256', 'M', '512', '512', 'M', '512', '512', 'M'],
-            13: ['64', '64', 'M', '128', '128', 'M', '256', '256', 'M', '512', '512', 'M', '512', '512', 'M'],
-            16: ['64', '64', 'M', '128', '128', 'M', '256', '256', '256', 'M', '512', '512', '512', 'M', '512', '512', '512', 'M'],
-        }
-        self.conv = nn.Conv2d
-        self.features = make_layers_Cifar10(cfg[11], True, self.conv)
-        self.classifier=None
-        self.classifier = nn.Sequential(
-            nn.Dropout(),
-            self.linear(512 * 1 * 1, 10),
-            # nn.ReLU(True),
-            # self.linear(4096, 4096),
-            # nn.ReLU(True),
-            # self.linear(4096, args.num_classes),
-            # nn.ReLU(True),
-            nn.LogSoftmax(dim=1)
-        )
-    def forward(self, x):
-        x = self.features(x)
-        x = x.view(-1, 512 * 1 * 1)
-        x = self.classifier(x)
-        return x
 
